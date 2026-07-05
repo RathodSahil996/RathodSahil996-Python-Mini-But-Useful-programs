@@ -1,0 +1,1868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
+<title>EcoLeach – Leachate Management System</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --g900:#0d3320;--g800:#1a5c3a;--g700:#217a4a;--g600:#2e9e5e;
+  --g500:#3bbf72;--g400:#6fd49a;--g200:#c8f0d8;--g100:#e8f9ee;--g50:#f4fdf6;
+  --amber:#f59e0b;--red:#ef4444;--purple:#7c3aed;
+  --ink:#1a2e1e;--muted:#5a7a62;--border:#d1e8d8;
+  --shadow:0 2px 14px rgba(0,0,0,.09);--r:14px;
+  --font:'Segoe UI',system-ui,sans-serif;
+}
+body{font-family:var(--font);background:#dde8df;color:var(--ink);
+  display:flex;justify-content:center;min-height:100vh}
+button{cursor:pointer;border:none;outline:none;font-family:var(--font)}
+input,textarea,select{font-family:var(--font);outline:none}
+
+/* ── SHELL ── */
+#app{max-width:430px;width:100%;min-height:100vh;background:var(--g50);
+  display:flex;flex-direction:column;box-shadow:0 0 50px rgba(0,0,0,.2)}
+
+/* ── SCREENS ── */
+.sc{display:none;flex-direction:column;min-height:100vh;animation:fi .2s ease}
+.sc.on{display:flex}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ── TOPBAR ── */
+.tb{background:var(--g800);color:#fff;padding:13px 16px;
+  display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:50}
+.tb-back{background:rgba(255,255,255,.15);color:#fff;width:33px;height:33px;
+  border-radius:50%;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tb h1{font-size:16px;font-weight:700;flex:1}
+.tb-act{margin-left:auto;background:rgba(255,255,255,.18);color:#fff;
+  border-radius:8px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer}
+.tb-act:hover{background:rgba(255,255,255,.28)}
+
+/* ── BODY ── */
+.body{flex:1;overflow-y:auto;padding-bottom:4px}
+.body::-webkit-scrollbar{width:3px}
+.body::-webkit-scrollbar-thumb{background:var(--g400);border-radius:2px}
+
+/* ── CARDS ── */
+.card{background:#fff;border-radius:var(--r);box-shadow:var(--shadow);padding:15px;margin-bottom:11px}
+.row{display:flex;gap:9px;margin-bottom:11px}
+.mc2{background:#fff;border-radius:10px;box-shadow:var(--shadow);padding:11px 7px;flex:1;text-align:center}
+.mc2 .mn{font-size:21px;font-weight:900;color:var(--g700)}
+.mc2 .ml{font-size:10px;color:var(--muted);font-weight:600;margin-top:1px}
+
+/* ── BUTTONS ── */
+.btn{display:flex;align-items:center;justify-content:center;gap:7px;
+  padding:12px 18px;border-radius:10px;font-weight:700;font-size:14px;
+  cursor:pointer;border:none;width:100%;transition:all .13s}
+.btn-p{background:var(--g700);color:#fff}.btn-p:hover{background:var(--g800)}
+.btn-o{background:var(--g100);color:var(--g800);border:1.5px solid var(--g400)}
+.btn-sm{padding:6px 12px;font-size:11px;width:auto;border-radius:7px;font-weight:700;cursor:pointer;border:none}
+.b-acc-btn{background:#dcfce7;color:#15803d;border:1.5px solid #86efac}
+.b-rej-btn{background:#fee2e2;color:var(--red);border:1.5px solid #fca5a5}
+.b-edit-btn{background:#dbeafe;color:#1d4ed8;border:1.5px solid #93c5fd}
+
+/* ── FIELDS ── */
+.f{margin-bottom:13px}
+.f label{display:block;font-size:11px;font-weight:700;color:var(--g800);margin-bottom:4px}
+.f input,.f textarea,.f select{width:100%;padding:10px 12px;border:1.5px solid var(--border);
+  border-radius:9px;font-size:13px;color:var(--ink);background:#fff;transition:border-color .15s}
+.f input:focus,.f textarea:focus,.f select:focus{border-color:var(--g600)}
+.f textarea{resize:vertical;min-height:75px}
+.f-row{display:flex;gap:9px}.f-row .f{flex:1}
+
+/* ── BADGES ── */
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700}
+.b-ok{background:#dcfce7;color:#15803d}
+.b-warn{background:#fef9c3;color:#a16207}
+.b-crit{background:#fee2e2;color:var(--red)}
+.b-pend{background:#dbeafe;color:#1d4ed8}
+.b-acc{background:#dcfce7;color:#15803d}
+.b-rej{background:#fee2e2;color:var(--red)}
+.b-user{background:var(--g100);color:var(--g700)}
+.b-admin{background:#ede9fe;color:var(--purple)}
+
+/* ── SPLASH ── */
+.splash{background:linear-gradient(155deg,var(--g800) 0%,var(--g600) 60%,#5dbf8a 100%);
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:40px 26px;text-align:center;color:#fff}
+.splash-logo{font-size:68px;animation:fl 3s ease-in-out infinite;margin-bottom:16px}
+@keyframes fl{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.splash h1{font-size:28px;font-weight:900;letter-spacing:-.5px;margin-bottom:5px}
+.splash p{font-size:14px;opacity:.82;margin-bottom:34px;line-height:1.5}
+.sb1{background:#fff;color:var(--g800);padding:14px;border-radius:12px;
+  font-size:15px;font-weight:800;border:none;cursor:pointer;width:100%;margin-bottom:10px}
+.sb2{background:rgba(255,255,255,.13);color:#fff;border:2px solid rgba(255,255,255,.36);
+  padding:13px;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;width:100%}
+
+/* ── AUTH ── */
+.auth-wrap{flex:1;padding:26px 20px;background:#fff}
+.auth-head{text-align:center;margin-bottom:24px}
+.auth-head .ae{font-size:48px;display:block;margin-bottom:9px}
+.auth-head h2{font-size:22px;font-weight:800;color:var(--g800)}
+.auth-head p{color:var(--muted);font-size:12px;margin-top:3px}
+.demo-box{background:var(--g100);border-radius:9px;padding:10px 13px;
+  margin-bottom:16px;font-size:12px;color:var(--g800);border:1px solid var(--g200)}
+.err-box{background:#fee2e2;color:var(--red);padding:9px 12px;border-radius:8px;
+  font-size:12px;margin-bottom:12px;display:none}
+
+/* ── DASHBOARD HEADER ── */
+.dh{background:linear-gradient(135deg,var(--g800),var(--g600));color:#fff;padding:18px 16px 26px}
+.dh .gr{font-size:12px;opacity:.7;margin-bottom:3px}
+.dh h2{font-size:20px;font-weight:800}
+.dh p{opacity:.72;font-size:12px;margin-top:2px}
+
+/* ── STATS ROW ── */
+.stats{display:flex;gap:8px;padding:0 13px;margin-top:-16px;margin-bottom:2px}
+.stat{flex:1;background:#fff;border-radius:10px;box-shadow:var(--shadow);padding:11px 7px;text-align:center}
+.stat .sn{font-size:22px;font-weight:900;color:var(--g700)}
+.stat .sl{font-size:10px;color:var(--muted);font-weight:600;margin-top:1px}
+
+/* ── MENU GRID ── */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:13px}
+.mc{background:#fff;border-radius:var(--r);box-shadow:var(--shadow);
+  padding:17px 11px;text-align:center;cursor:pointer;transition:transform .13s,box-shadow .13s}
+.mc:hover{transform:translateY(-2px);box-shadow:0 6px 22px rgba(0,0,0,.12)}
+.mc .mi{font-size:34px;display:block;margin-bottom:7px}
+.mc .ml{font-size:13px;font-weight:700;color:var(--g800)}
+.mc .ms{font-size:10px;color:var(--muted);margin-top:2px}
+.mc.wide{grid-column:span 2;display:flex;align-items:center;gap:13px;
+  text-align:left;padding:14px 16px}
+.mc.wide .mi{font-size:30px;margin-bottom:0;flex-shrink:0}
+
+/* ── LIST ITEMS ── */
+.li{background:#fff;border-radius:var(--r);box-shadow:var(--shadow);padding:14px;margin-bottom:10px}
+.li-top{display:flex;align-items:flex-start;gap:11px}
+.li-em{font-size:36px;flex-shrink:0}
+.li-body{flex:1;min-width:0}
+.li-body h3{font-size:13px;font-weight:700;margin-bottom:3px}
+.li-body p{font-size:11px;color:var(--muted);line-height:1.45}
+.chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.chip{background:var(--g100);color:var(--g700);border-radius:20px;padding:3px 8px;font-size:10px;font-weight:600}
+.li-actions{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap}
+
+/* ── STEP CARD ── */
+.step{background:#fff;border-radius:var(--r);box-shadow:var(--shadow);padding:15px;margin-bottom:10px}
+.step-top{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+.step-n{width:28px;height:28px;border-radius:50%;background:var(--g700);color:#fff;
+  font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.step-ic{font-size:26px}
+.step-ti{font-size:14px;font-weight:700;color:var(--g800)}
+.tip{background:var(--g50);border-left:3px solid var(--g500);padding:6px 10px;
+  border-radius:0 7px 7px 0;font-size:11px;color:var(--g800);margin-top:8px}
+
+/* ── USE CARD ── */
+.uc{background:#fff;border-radius:var(--r);box-shadow:var(--shadow);padding:15px;margin-bottom:10px}
+.uc-cat{font-size:10px;font-weight:700;color:var(--g600);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.uc h3{font-size:15px;font-weight:800;margin-bottom:6px}
+.blist{list-style:none;margin:8px 0}
+.blist li{font-size:11px;margin-bottom:3px}
+.blist li::before{content:"✓ ";color:var(--g600);font-weight:700}
+.prec{background:#fff8e1;border-left:3px solid var(--amber);padding:6px 10px;
+  border-radius:0 7px 7px 0;font-size:11px;color:#7c5800;margin-top:8px}
+
+/* ── PRODUCT CARD ── */
+.prod{background:linear-gradient(135deg,var(--g700),var(--g500));
+  border-radius:var(--r);padding:20px;text-align:center;color:#fff;margin-bottom:13px}
+.prod .pe{font-size:56px;display:block;margin-bottom:9px}
+.prod h2{font-size:19px;font-weight:800}
+.prod p{opacity:.82;font-size:12px;margin-top:3px}
+.prod .avl{background:rgba(255,255,255,.2);border-radius:7px;
+  padding:5px 13px;display:inline-block;margin-top:10px;font-weight:700;font-size:12px}
+
+/* ── CONTACT ── */
+.ci{display:flex;align-items:center;gap:11px;padding:13px;
+  background:#fff;border-radius:10px;box-shadow:var(--shadow);margin-bottom:8px}
+.ci .cic{font-size:22px;width:42px;height:42px;border-radius:10px;
+  background:var(--g100);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ci .cl{font-size:10px;color:var(--muted);font-weight:600}
+.ci .cv{font-size:13px;font-weight:700;color:var(--g800)}
+
+/* ── FAQ ── */
+.faq{background:#fff;border-radius:9px;box-shadow:var(--shadow);margin-bottom:8px;overflow:hidden}
+.faq-q{padding:12px 13px;font-weight:700;font-size:12px;cursor:pointer;
+  display:flex;justify-content:space-between;align-items:center;color:var(--g800)}
+.faq-a{padding:0 13px;font-size:11px;color:var(--muted);line-height:1.6;
+  max-height:0;overflow:hidden;transition:max-height .3s,padding .3s}
+.faq-a.open{max-height:200px;padding:0 13px 12px}
+.faq-arr{transition:transform .2s;font-size:10px;flex-shrink:0}
+.faq-arr.open{transform:rotate(180deg)}
+
+/* ── BOTTLE LEVEL CARD ── */
+.blc{background:#fff;border-radius:var(--r);box-shadow:var(--shadow);padding:14px;margin-bottom:10px}
+.blc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.blc-name{font-weight:800;font-size:14px;color:var(--ink)}
+.blc-loc{font-size:11px;color:var(--muted);margin-top:2px}
+.prog-wrap{background:var(--g100);border-radius:20px;height:18px;overflow:hidden;position:relative}
+.prog-fill{height:100%;border-radius:20px;transition:width .7s ease;position:relative}
+.prog-fill::after{content:attr(data-pct);position:absolute;right:8px;top:50%;
+  transform:translateY(-50%);font-size:10px;font-weight:800;color:#fff;
+  text-shadow:0 1px 2px rgba(0,0,0,.3)}
+.p-ok{background:linear-gradient(90deg,var(--g700),var(--g400))}
+.p-warn{background:linear-gradient(90deg,#d97706,#f59e0b)}
+.p-crit{background:linear-gradient(90deg,#dc2626,#ef4444)}
+.prog-info{display:flex;justify-content:space-between;font-size:11px;
+  color:var(--muted);margin-top:5px;font-weight:600}
+
+/* ── LEVEL VISUAL (big gauge) ── */
+.gauge-wrap{text-align:center;padding:20px 0 10px}
+.gauge-circle{width:130px;height:130px;border-radius:50%;margin:0 auto 12px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-weight:900;position:relative;box-shadow:0 4px 20px rgba(0,0,0,.15)}
+.gauge-pct{font-size:30px;line-height:1}
+.gauge-lbl{font-size:11px;opacity:.85;margin-top:2px}
+
+/* ── ORDER CARD ── */
+.oc{background:#fff;border-radius:var(--r);box-shadow:var(--shadow);padding:14px;margin-bottom:10px}
+.oc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+
+/* ── EDIT STEP ── */
+.edit-step{background:#fff;border-radius:var(--r);box-shadow:var(--shadow);padding:14px;margin-bottom:10px}
+.edit-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px}
+
+/* ── USER ROW ── */
+.ur{background:#fff;border-radius:10px;box-shadow:var(--shadow);
+  padding:12px 13px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.av{width:38px;height:38px;border-radius:50%;background:var(--g200);
+  display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;
+  color:var(--g800);flex-shrink:0}
+.ui{flex:1;min-width:0}
+.un{font-size:12px;font-weight:700}
+.ue{font-size:10px;color:var(--muted)}
+
+/* ── SEARCH ── */
+.srch{display:flex;align-items:center;gap:8px;background:#fff;
+  border-radius:10px;box-shadow:var(--shadow);padding:9px 12px;margin-bottom:11px}
+.srch input{flex:1;border:none;font-size:12px;background:transparent;color:var(--ink)}
+.srch input::placeholder{color:var(--muted)}
+
+/* ── PAGE INTRO ── */
+.pi{background:linear-gradient(135deg,var(--g800),var(--g600));color:#fff;padding:16px}
+.pi h2{font-size:17px;font-weight:800}
+.pi p{font-size:11px;opacity:.78;margin-top:3px}
+
+/* ── INFO BANNERS ── */
+.info-b{border-radius:9px;padding:10px 12px;font-size:11px;line-height:1.5;margin-bottom:11px}
+.ib-g{background:var(--g100);color:var(--g700);border:1px solid var(--g200)}
+.ib-y{background:#fef9c3;border-left:3px solid var(--amber);color:#92400e;border-radius:0 8px 8px 0}
+.ib-r{background:#fee2e2;border-left:3px solid var(--red);color:#991b1b;border-radius:0 8px 8px 0}
+
+/* ── FEEDBACK CARD ── */
+.fbc{background:#fff;border-radius:10px;box-shadow:var(--shadow);padding:13px;margin-bottom:9px}
+.fbc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+
+/* ── SECTION LABEL ── */
+.sec-lbl{font-weight:700;font-size:10px;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.5px;margin:14px 0 8px}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(18px);
+  background:var(--g800);color:#fff;padding:10px 20px;border-radius:30px;
+  font-weight:700;font-size:12px;opacity:0;transition:all .25s;z-index:9999;
+  pointer-events:none;max-width:88%;text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── MODAL ── */
+.mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);
+  z-index:200;align-items:flex-end;justify-content:center}
+.mo.open{display:flex}
+.mo-box{background:#fff;border-radius:20px 20px 0 0;width:100%;
+  max-width:430px;padding:20px;max-height:88vh;overflow-y:auto;animation:su .26s ease}
+@keyframes su{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.mo-box h2{font-size:17px;font-weight:800;margin-bottom:13px;color:var(--g800)}
+.mo-close{float:right;background:var(--g100);border:none;border-radius:50%;
+  width:28px;height:28px;font-size:15px;cursor:pointer;color:var(--g800);line-height:28px}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:44px 20px;color:var(--muted)}
+.empty .ee{font-size:46px;display:block;margin-bottom:10px}
+
+/* ── PAD ── */
+.pad{padding:11px 13px}
+
+/* ── DETAIL IMG ── */
+.detail-img{background:linear-gradient(135deg,var(--g800),var(--g600));
+  height:170px;display:flex;align-items:center;justify-content:center;font-size:76px}
+
+/* ── ERR ── */
+.err-inline{color:var(--red);font-size:11px;margin-top:4px;display:none}
+
+/* ── RESPONSIVE ── */
+@media(max-width:430px){#app{max-width:100%;box-shadow:none}}
+html,body,#app{overflow-x:hidden}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ══════════════════════════════════════════════════════════
+  SPLASH
+══════════════════════════════════════════════════════════ -->
+<div id="sc-splash" class="sc on">
+  <div class="splash">
+    <div class="splash-logo">🌿</div>
+    <h1>EcoLeach</h1>
+    <p>IoT-Based Organic Waste Leachate<br>Monitoring &amp; Management System</p>
+    <button class="sb1" onclick="showLogin('user')">👤 &nbsp;User Login</button>
+    <button class="sb2" onclick="showLogin('admin')">🔑 &nbsp;Manager / Admin Login</button>
+  </div>
+  <div style="background:rgba(0,0,0,.18);color:rgba(255,255,255,.55);font-size:11px;
+    text-align:center;padding:11px">B.Sc. IT Final Year Project · EcoLeach v2.0</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+  LOGIN
+══════════════════════════════════════════════════════════ -->
+<div id="sc-login" class="sc">
+  <div style="background:var(--g800);height:5px"></div>
+  <div class="auth-wrap">
+    <div class="auth-head">
+      <span class="ae" id="l-em">👤</span>
+      <h2 id="l-title">User Login</h2>
+      <p id="l-sub">Sign in to access your dashboard</p>
+    </div>
+    <div class="demo-box" id="l-demo"></div>
+    <div class="err-box" id="l-err">❌ Invalid email or password. Please try again.</div>
+    <div class="f"><label>Email Address</label>
+      <input type="email" id="l-email" placeholder="you@email.com"/></div>
+    <div class="f"><label>Password</label>
+      <input type="password" id="l-pass" placeholder="Enter your password"
+        onkeydown="if(event.key==='Enter')doLogin()"/></div>
+    <button class="btn btn-p" style="margin-top:6px" onclick="doLogin()">Sign In →</button>
+    <div id="l-signup-link" style="text-align:center;margin-top:16px;font-size:12px;color:var(--muted)">
+      Don't have an account? <a href="javascript:void(0)" onclick="showSignup()" style="color:var(--g700);font-weight:700;text-decoration:none">Create Account</a>
+    </div>
+    <button class="btn btn-o" style="margin-top:9px" onclick="go('splash')">← Back</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+  SIGN UP (Create Account)
+══════════════════════════════════════════════════════════ -->
+<div id="sc-signup" class="sc">
+  <div style="background:var(--g800);height:5px"></div>
+  <div class="auth-wrap">
+    <div class="auth-head">
+      <span class="ae">📝</span>
+      <h2>Create Account</h2>
+      <p>Sign up to start requesting free leachate</p>
+    </div>
+    <div class="err-box" id="s-err"></div>
+    <div class="f"><label>Full Name *</label>
+      <input type="text" id="s-name" placeholder="Your full name"/></div>
+    <div class="f"><label>Email Address *</label>
+      <input type="email" id="s-email" placeholder="you@email.com"/></div>
+    <div class="f"><label>Mobile Number *</label>
+      <input type="tel" id="s-mobile" placeholder="10-digit mobile number" maxlength="10"/></div>
+    <div class="f"><label>Password *</label>
+      <input type="password" id="s-pass" placeholder="Create a password (min 6 chars)"/></div>
+    <div class="f"><label>Confirm Password *</label>
+      <input type="password" id="s-pass2" placeholder="Re-enter your password"
+        onkeydown="if(event.key==='Enter')doSignup()"/></div>
+    <button class="btn btn-p" style="margin-top:6px" onclick="doSignup()">Create Account →</button>
+    <div style="text-align:center;margin-top:16px;font-size:12px;color:var(--muted)">
+      Already have an account? <a href="javascript:void(0)" onclick="showLogin('user')" style="color:var(--g700);font-weight:700;text-decoration:none">Sign In</a>
+    </div>
+    <button class="btn btn-o" style="margin-top:9px" onclick="go('splash')">← Back</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+  USER DASHBOARD
+══════════════════════════════════════════════════════════ -->
+<div id="sc-udash" class="sc">
+  <div class="dh">
+    <div class="gr" id="ud-gr">Good morning! 👋</div>
+    <h2 id="ud-name">Welcome</h2>
+    <p>Manage your leachate activities</p>
+  </div>
+  <div class="body">
+    <div class="stats">
+      <div class="stat"><div class="sn" id="ud-sd">4</div><div class="sl">Distributed</div></div>
+      <div class="stat"><div class="sn" id="ud-sv">28L</div><div class="sl">Total Vol.</div></div>
+      <div class="stat"><div class="sn" id="ud-so">0</div><div class="sl">My Orders</div></div>
+    </div>
+    <div class="grid">
+      <div class="mc" onclick="go('distributions')">
+        <span class="mi">🫙</span><div class="ml">Distributions</div><div class="ms">Our leachate records</div>
+      </div>
+      <div class="mc" onclick="go('how-to')">
+        <span class="mi">📚</span><div class="ml">How to Make</div><div class="ms">Step-by-step guide</div>
+      </div>
+      <div class="mc" onclick="go('uses')">
+        <span class="mi">🌾</span><div class="ml">Uses</div><div class="ms">Agricultural benefits</div>
+      </div>
+      <div class="mc" onclick="go('order')">
+        <span class="mi">📦</span><div class="ml">Free Order</div><div class="ms">Request leachate</div>
+      </div>
+      <div class="mc wide" onclick="go('my-orders')">
+        <span class="mi">🧾</span>
+        <div><div class="ml">My Orders</div><div class="ms">Track your requests &amp; status</div></div>
+      </div>
+      <div class="mc wide" onclick="go('bottle-levels')">
+        <span class="mi">🧪</span>
+        <div><div class="ml">Leachate Bottle Levels</div><div class="ms">Check current fill levels of all bottles</div></div>
+      </div>
+      <div class="mc wide" onclick="go('support')">
+        <span class="mi">💬</span>
+        <div><div class="ml">Customer Support</div><div class="ms">FAQ, feedback &amp; contact</div></div>
+      </div>
+    </div>
+    <div class="pad">
+      <div class="info-b ib-g">ℹ️ <b>IoT Device (ESP32):</b> SMS alerts are active for warning &amp; critical overflow levels on all bottles.</div>
+      <button class="btn btn-o" onclick="doLogout()">🚪 Log Out</button>
+    </div>
+    <div style="height:14px"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+  DISTRIBUTIONS (WE distribute leachate — admin manages, user views)
+══════════════════════════════════════════════════════════ -->
+<div id="sc-distributions" class="sc">
+  <div class="tb">
+    <button class="tb-back" onclick="back()">←</button>
+    <h1>🫙 Leachate Distributions</h1>
+    <button class="tb-act" id="dist-add-btn" style="display:none" onclick="go('add-distribution')">➕ Add</button>
+  </div>
+  <div class="body">
+    <div class="pad" style="padding-bottom:0">
+      <div class="info-b ib-g" style="font-size:11px">
+        📋 These are records of leachate we have distributed to the community from our collection bottles.
+      </div>
+      <div class="row">
+        <div class="mc2"><div class="mn" id="dist-tot">0</div><div class="ml">Total</div></div>
+        <div class="mc2"><div class="mn" id="dist-b1">0</div><div class="ml">Bottle #001</div></div>
+        <div class="mc2"><div class="mn" id="dist-b2">0</div><div class="ml">Bottle #002</div></div>
+        <div class="mc2"><div class="mn" id="dist-b3">0</div><div class="ml">Bottle #003</div></div>
+      </div>
+    </div>
+    <div class="pad" id="dist-list"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+  DISTRIBUTION DETAIL
+══════════════════════════════════════════════════════════ -->
+<div id="sc-dist-detail" class="sc">
+  <div class="tb">
+    <button class="tb-back" onclick="back()">←</button>
+    <h1>Distribution Details</h1>
+  </div>
+  <div class="body" id="dist-detail-body"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+  ADD / EDIT DISTRIBUTION (Admin only)
+══════════════════════════════════════════════════════════ -->
+<div id="sc-add-distribution" class="sc">
+  <div class="tb">
+    <button class="tb-back" onclick="back()">←</button>
+    <h1 id="add-dist-title">➕ Add Distribution</h1>
+  </div>
+  <div class="body">
+    <div class="pad">
+      <input type="hidden" id="edit-dist-id"/>
+      <div class="card">
+        <div class="f"><label>Icon / Image</label>
+          <select id="dist-img">
+            <option value="🫙">🫙 Glass Jar</option>
+            <option value="🪣">🪣 Bucket</option>
+            <option value="🧴">🧴 Bottle</option>
+            <option value="🌿">🌿 Organic Pack</option>
+            <option value="♻️">♻️ Recycle Bin</option>
+          </select></div>
+        <div class="f-row">
+          <div class="f"><label>Date *</label><input type="date" id="dist-date"/></div>
+          <div class="f"><label>Quantity Distributed *</label><input type="text" id="dist-qty" placeholder="e.g. 5 Litres"/></div>
+        </div>
+        <div class="f"><label>Distributed From (Bottle) *</label>
+          <select id="dist-bottle">
+            <option>Bottle #001</option><option>Bottle #002</option>
+            <option>Bottle #003</option><option>Bottle #004</option>
+          </select></div>
+        <div class="f"><label>Distributed To (Person / Organisation)</label>
+          <input type="text" id="dist-to" placeholder="Recipient name or Community"/></div>
+        <div class="f"><label>Location *</label>
+          <input type="text" id="dist-loc" placeholder="Area, City"/></div>
+        <div class="f"><label>Purpose</label>
+          <input type="text" id="dist-purpose" placeholder="e.g. Farming, Gardening, Research"/></div>
+        <div class="f"><label>Description *</label>
+          <textarea id="dist-desc" placeholder="Describe this distribution..."></textarea></div>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button class="btn btn-p" onclick="saveDistribution()" id="dist-save-btn">✅ Save Record</button>
+          <button class="btn btn-o btn-sm" style="width:auto;padding:12px 16px" onclick="back()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+  HOW TO MAKE (shared)
+══════════════════════════════════════════════════════════ -->
+<div id="sc-how-to" class="sc">
+  <div class="tb">
+    <button class="tb-back" onclick="back()">←</button>
+    <h1>📚 How to Make Leachate</h1>
+  </div>
+  <div class="body">
+    <div class="pi"><h2>Step-by-Step Production Guide</h2><p>Learn to make nutrient-rich leachate at home</p></div>
+    <div class="pad" id="how-to-list"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+  USES (shared)
+══════════════════════════════════════════════════════════ -->
+<div id="sc-uses" class="sc">
+  <div class="tb">
+    <button class="tb-back" onclick="back()">←</button>
+    <h1>🌾 Uses of Leachate</h1>
+  </div>
+  <div class="body">
+    <div class="pi"><h2>Agricultural &amp; Gardening Uses</h2><p>Benefits of organic leachate liquid</p></div>
+    <div class="pad" id="uses-list"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+  FREE ORDER
+══════════════════════════════════════════════════════════ -->
+<div id="sc-order" class="sc">
+  <div class="tb">
+    <button class="tb-back" onclick="back()">←</button>
+    <h1>📦 Request Free Leachate</h1>
+  </div>
+  <div class="body">
+    <div class="pad">
+      <div class="prod">
+        <span class="pe">🫙</span>
+        <h2>Organic Leachate Liquid</h2>
+        <p>100% natural fertiliser from composted organic waste</p>
+        <div class="avl" id="order-avl-text">✅ Available: ~35 Litres</div>
+      </div>
+      <div class="card" style="background:var(--g50);box-shadow:none;border:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;color:var(--g800);margin-bottom:6px">Product Details</div>
+        <div style="font-size:11px;color:var(--g700);line-height:1.9">
+          🌿 Type: Bokashi / Compost Leachate<br>
+          📦 Max per request: 10 Litres<br>
+          🚚 Delivery: Local Mumbai area only<br>
+          💚 Cost: Completely FREE
+        </div>
+      </div>
+      <button class="btn btn-p" onclick="openOrderModal()">🛒 &nbsp;Order Now — It's Free!</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+  MY ORDERS — User can see their own orders & status
+══════════════════════════════════════════════════════════ -->
+<div id="sc-my-orders" class="sc">
+  <div class="tb">
+    <button class="tb-back" onclick="back()">←</button>
+    <h1>🧾 My Orders</h1>
+  </div>
+  <div class="body">
+    <div class="pad" id="my-orders-list"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+  BOTTLE LEVELS — Visible to Users
+══════════════════════════════════════════════════════════ -->
+<div id="sc-bottle-levels" class="sc">
+  <div class="tb">
+    <button class="tb-back" onclick="back()">←</button>
+    <h1>🧪 Bottle Levels</h1>
+  </div>
+  <div class="body">
+    <div class="pad">
+      <div class="info-b ib-g">
+        📡 <b>IoT Monitoring (ESP32):</b> Our sensors detect water levels and send SMS alerts automatically. The levels below are updated by our team based on sensor readings.
+      </div>
+      <div id="user-bottles-list"></div>
+      <div class="info-b ib-y" style="margin-top:4px">
+        ⚠️ <b>Note:</b> Bottles at WARNING or CRITICAL level may have limited stock. Please check before placing an order.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+  SUPPORT
+══════════════════════════════════════════════════════════ -->
+<div id="sc-support" class="sc">
+  <div class="tb">
+    <button class="tb-back" onclick="back()">←</button>
+    <h1>💬 Customer Support</h1>
+  </div>
+  <div class="body">
+    <div class="pad">
+      <div class="sec-lbl">Contact Us</div>
+      <div class="ci"><div class="cic">📞</div><div><div class="cl">Phone / WhatsApp</div><div class="cv">+91 98765 43210</div></div></div>
+      <div class="ci"><div class="cic">📧</div><div><div class="cl">Email</div><div class="cv">support@ecoleach.in</div></div></div>
+      <div class="ci"><div class="cic">⏰</div><div><div class="cl">Support Hours</div><div class="cv">Mon–Sat, 9 AM – 6 PM</div></div></div>
+      <div class="sec-lbl">Frequently Asked Questions</div>
+      <div id="faq-list"></div>
+      <div class="sec-lbl">Send Feedback</div>
+      <div class="card">
+        <div class="f"><label>Your Name *</label><input type="text" id="fb-name" placeholder="Your full name"/></div>
+        <div class="f"><label>Email *</label><input type="email" id="fb-email" placeholder="your@email.com"/></div>
+        <div class="f"><label>Message *</label><textarea id="fb-msg" placeholder="Tell us how we can help..."></textarea></div>
+        <button class="btn btn-p" onclick="submitFeedback()">📤 &nbsp;Send Feedback</button>
+      </div>
+      <div class="sec-lbl">Help Center</div>
+      <div class="card" style="background:var(--g50);box-shadow:none;border:1px solid var(--border)">
+        <div style="font-size:12px;color:var(--g700);line-height:1.9">
+          📱 <b>WhatsApp</b> for fastest response<br>
+          📧 Email replies within 24 hours<br>
+          🌿 We're a community-driven initiative<br>
+          ♻️ Help us reduce organic waste together!
+        </div>
+      </div>
+    </div>
+    <div style="height:18px"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+  ADMIN DASHBOARD
+══════════════════════════════════════════════════════════ -->
+<div id="sc-adash" class="sc">
+  <div class="dh">
+    <div class="gr">Manager Panel 🔑</div>
+    <h2 id="ad-name">Admin Dashboard</h2>
+    <p>Full management access</p>
+  </div>
+  <div class="body">
+    <div class="stats">
+      <div class="stat"><div class="sn" id="a-users">0</div><div class="sl">Users</div></div>
+      <div class="stat"><div class="sn" id="a-dists">0</div><div class="sl">Distributed</div></div>
+      <div class="stat"><div class="sn" id="a-ords">0</div><div class="sl">Orders</div></div>
+      <div class="stat"><div class="sn" id="a-bots">4</div><div class="sl">Bottles</div></div>
+    </div>
+    <div class="pad" style="padding-bottom:0"><div id="admin-alerts"></div></div>
+    <div class="grid">
+      <div class="mc" onclick="go('distributions')">
+        <span class="mi">🫙</span><div class="ml">Distributions</div><div class="ms">Add &amp; manage</div>
+      </div>
+      <div class="mc" onclick="go('admin-orders')">
+        <span class="mi">📦</span><div class="ml">Orders</div><div class="ms">Accept or reject</div>
+      </div>
+      <div class="mc" onclick="go('admin-content')">
+        <span class="mi">📝</span><div class="ml">Content</div><div class="ms">Edit educational</div>
+      </div>
+      <div class="mc" onclick="go('admin-users')">
+        <span class="mi">👥</span><div class="ml">Users</div><div class="ms">Manage accounts</div>
+      </div>
+      <div class="mc" onclick="go('admin-bottles')">
+        <span class="mi">🧪</span><div class="ml">Bottles</div><div class="ms">Update levels</div>
+      </div>
+      <div class="mc" onclick="go('admin-feedback')">
+        <span class="mi">💬</span><div class="ml">Feedback</div><div class="ms">Support requests</div>
+      </div>
+    </div>
+    <div class="pad">
+      <button class="btn btn-o" onclick="doLogout()">🚪 Log Out</button>
+    </div>
+    <div style="height:14px"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+  ADMIN — ORDER MANAGEMENT (all user orders visible here)
+══════════════════════════════════════════════════════════ -->
+<div id="sc-admin-orders" class="sc">
+  <div class="tb">
+    <button class="tb-back" onclick="back()">←</button>
+    <h1>📦 Order Management</h1>
+  </div>
+  <div class="body">
+    <div class="pad" style="padding-bottom:0">
+      <div class="row">
+        <div class="mc2"><div class="mn" id="ao-pend">0</div><div class="ml">Pending</div></div>
+        <div class="mc2"><div class="mn" id="ao-acc">0</div><div class="ml">Accepted</div></div>
+        <div class="mc2"><div class="mn" id="ao-rej">0</div><div class="ml">Rejected</div></div>
+        <div class="mc2"><div class="mn" id="ao-tot">0</div><div class="ml">Total</div></div>
+      </div>
+      <div class="srch">
+        <span>🔍</span>
+        <input type="text" id="ord-search" placeholder="Search by name, city or status..." oninput="renderAdminOrders()"/>
+      </div>
+    </div>
+    <div class="pad" id="admin-orders-list"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+  ADMIN — CONTENT MANAGEMENT
+══════════════════════════════════════════════════════════ -->
+<div id="sc-admin-content" class="sc">
+  <div class="tb">
+    <button class="tb-back" onclick="back()">←</button>
+    <h1>📝 Content Management</h1>
+  </div>
+  <div class="body">
+    <div class="pad">
+      <div class="info-b ib-g">Edit educational content that users see in the app. All changes apply immediately.</div>
+      <div class="mc wide" style="margin-bottom:10px" onclick="go('edit-how-to')">
+        <span class="mi">📚</span>
+        <div><div class="ml">How to Make Leachate</div><div class="ms">Edit 6 steps, icons &amp; tips</div></div>
+      </div>
+      <div class="mc wide" onclick="go('edit-uses')">
+        <span class="mi">🌾</span>
+        <div><div class="ml">Uses of Leachate</div><div class="ms">Edit 4 use cases, benefits &amp; precautions</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+  ADMIN — EDIT HOW TO
+══════════════════════════════════════════════════════════ -->
+<div id="sc-edit-how-to" class="sc">
+  <div class="tb">
+    <button class="tb-back" onclick="back()">←</button>
+    <h1>📚 Edit How-To Steps</h1>
+    <button class="tb-act" onclick="saveHowTo()">💾 Save</button>
+  </div>
+  <div class="body">
+    <div class="pad" id="edit-howto-list"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+  ADMIN — EDIT USES
+══════════════════════════════════════════════════════════ -->
+<div id="sc-edit-uses" class="sc">
+  <div class="tb">
+    <button class="tb-back" onclick="back()">←</button>
+    <h1>🌾 Edit Uses</h1>
+    <button class="tb-act" onclick="saveUses()">💾 Save</button>
+  </div>
+  <div class="body">
+    <div class="pad" id="edit-uses-list"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+  ADMIN — USERS
+══════════════════════════════════════════════════════════ -->
+<div id="sc-admin-users" class="sc">
+  <div class="tb">
+    <button class="tb-back" onclick="back()">←</button>
+    <h1>👥 User Management</h1>
+  </div>
+  <div class="body">
+    <div class="pad" style="padding-bottom:0">
+      <div class="srch"><span>🔍</span>
+        <input type="text" id="usr-search" placeholder="Search by name or email..." oninput="renderUsers()"/></div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:10px">
+        🔒 Passwords are never stored or shown — secured by encryption.</div>
+    </div>
+    <div class="pad" id="admin-users-list"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+  ADMIN — BOTTLE MONITOR (update levels manually)
+══════════════════════════════════════════════════════════ -->
+<div id="sc-admin-bottles" class="sc">
+  <div class="tb">
+    <button class="tb-back" onclick="back()">←</button>
+    <h1>🧪 Bottle Monitor</h1>
+    <button class="tb-act" onclick="openAddBottleModal()">➕ Add</button>
+  </div>
+  <div class="body">
+    <div class="pad">
+      <div class="info-b ib-g">
+        🔌 <b>ESP32 IoT device</b> sends SMS alerts on overflow. Update bottle levels below manually based on sensor readings or physical checks.
+      </div>
+      <div id="bottles-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+  ADMIN — FEEDBACK
+══════════════════════════════════════════════════════════ -->
+<div id="sc-admin-feedback" class="sc">
+  <div class="tb">
+    <button class="tb-back" onclick="back()">←</button>
+    <h1>💬 Feedback Management</h1>
+  </div>
+  <div class="body">
+    <div class="pad" style="padding-bottom:0">
+      <div class="row">
+        <div class="mc2"><div class="mn" id="fb-open-n">0</div><div class="ml">Open</div></div>
+        <div class="mc2"><div class="mn" id="fb-res-n">0</div><div class="ml">Resolved</div></div>
+        <div class="mc2"><div class="mn" id="fb-tot-n">0</div><div class="ml">Total</div></div>
+      </div>
+    </div>
+    <div class="pad" id="admin-feedback-list"></div>
+  </div>
+</div>
+
+</div><!-- end #app -->
+
+<!-- ══ ORDER MODAL ════════════════════════════════════════ -->
+<div class="mo" id="mo-order" onclick="closeModal('mo-order',event)">
+  <div class="mo-box">
+    <button class="mo-close" onclick="closeModal('mo-order')">×</button>
+    <h2>📦 Request Free Leachate</h2>
+    <div class="f"><label>Full Name *</label><input type="text" id="o-name" placeholder="Your full name"/></div>
+    <div class="f-row">
+      <div class="f"><label>Mobile Number *</label><input type="tel" id="o-mob" placeholder="10-digit" maxlength="10"/></div>
+      <div class="f"><label>Email *</label><input type="email" id="o-email" placeholder="your@email.com"/></div>
+    </div>
+    <div class="f"><label>Complete Address *</label><textarea id="o-addr" rows="2" placeholder="House no., street, area..."></textarea></div>
+    <div class="f-row">
+      <div class="f"><label>City *</label><input type="text" id="o-city" placeholder="Mumbai"/></div>
+      <div class="f"><label>State *</label><input type="text" id="o-state" placeholder="Maharashtra"/></div>
+    </div>
+    <div class="f-row">
+      <div class="f"><label>Pincode *</label><input type="text" id="o-pin" placeholder="400001" maxlength="6"/></div>
+      <div class="f"><label>Quantity *</label>
+        <select id="o-qty">
+          <option>1 Litre</option><option>2 Litres</option>
+          <option selected>5 Litres</option><option>10 Litres</option>
+        </select></div>
+    </div>
+    <div class="f"><label>Reason for Request (Optional)</label>
+      <textarea id="o-reason" rows="2" placeholder="How will you use it?"></textarea></div>
+    <div class="err-box" id="o-err" style="display:none"></div>
+    <button class="btn btn-p" onclick="submitOrder()">✅ &nbsp;Submit Request</button>
+  </div>
+</div>
+
+<!-- ══ ADD / EDIT BOTTLE MODAL ════════════════════════════ -->
+<div class="mo" id="mo-bottle" onclick="closeModal('mo-bottle',event)">
+  <div class="mo-box">
+    <button class="mo-close" onclick="closeModal('mo-bottle')">×</button>
+    <h2 id="bottle-modal-title">🧪 Add Bottle</h2>
+    <div class="f"><label>Bottle Name *</label><input type="text" id="b-name" placeholder="e.g. Bottle #005"/></div>
+    <div class="f"><label>Location *</label><input type="text" id="b-loc" placeholder="Area, City"/></div>
+    <div class="f-row">
+      <div class="f"><label>Capacity (Litres) *</label><input type="number" id="b-cap" placeholder="20" min="1"/></div>
+      <div class="f"><label>Current Level (Litres) *</label><input type="number" id="b-cur" placeholder="0" min="0"/></div>
+    </div>
+    <input type="hidden" id="b-edit-id"/>
+    <button class="btn btn-p" onclick="saveBottle()">✅ &nbsp;Save Bottle</button>
+  </div>
+</div>
+
+<!-- ══ REPLY MODAL ════════════════════════════════════════ -->
+<div class="mo" id="mo-reply" onclick="closeModal('mo-reply',event)">
+  <div class="mo-box">
+    <button class="mo-close" onclick="closeModal('mo-reply')">×</button>
+    <h2>💬 Reply to Feedback</h2>
+    <input type="hidden" id="reply-id"/>
+    <div id="reply-preview" style="background:var(--g50);border-radius:8px;padding:11px;
+      margin-bottom:13px;font-size:12px;color:var(--muted);font-style:italic"></div>
+    <div class="f"><label>Your Reply *</label>
+      <textarea id="reply-text" rows="4" placeholder="Type your reply here..."></textarea></div>
+    <button class="btn btn-p" onclick="saveReply()">📤 &nbsp;Send Reply</button>
+  </div>
+</div>
+
+<!-- ══ TOAST ══════════════════════════════════════════════ -->
+<div id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+// DATABASE
+// ════════════════════════════════════════════════════════════════
+let DB = {
+  users: [
+    {id:'u1',name:'Priya Sharma', email:'user@demo.com', pass:'user123', mobile:'9876543210',role:'user', reg:'2024-01-15'},
+    {id:'a1',name:'Admin Rajan',  email:'admin@demo.com',pass:'admin123',mobile:'9123456789',role:'admin',reg:'2023-11-01'},
+    {id:'u2',name:'Arjun Mehta', email:'arjun@demo.com',pass:'arjun123',mobile:'9988776655',role:'user', reg:'2024-03-22'},
+    {id:'u3',name:'Deepa Nair',  email:'deepa@demo.com',pass:'deepa123',mobile:'9112233445',role:'user', reg:'2024-05-10'},
+    {id:'u4',name:'Rohit Gupta', email:'rohit@demo.com',pass:'rohit123',mobile:'9001122334',role:'user', reg:'2024-06-01'},
+  ],
+
+  // DISTRIBUTIONS = leachate that WE give out to the community
+  distributions: [
+    {id:'dist1',image:'🫙',date:'2025-06-10',quantity:'5 Litres',
+     bottleId:'Bottle #001',distributedTo:'Andheri Community Garden Committee',
+     location:'Andheri, Mumbai',purpose:'Urban Farming',
+     description:'Distributed 5 litres of fresh leachate collected over 3 weeks to the Andheri community garden for use as liquid fertiliser on their vegetable beds.'},
+    {id:'dist2',image:'🪣',date:'2025-06-08',quantity:'8 Litres',
+     bottleId:'Bottle #002',distributedTo:'Bandra Resident Welfare Association',
+     location:'Bandra, Mumbai',purpose:'Gardening',
+     description:'8 litres of high-nitrogen leachate distributed to RWA for terrace gardens and potted plants across the society premises.'},
+    {id:'dist3',image:'🫙',date:'2025-06-05',quantity:'3 Litres',
+     bottleId:'Bottle #001',distributedTo:'Dadar Urban Farmers Group',
+     location:'Dadar, Mumbai',purpose:'Soil Treatment',
+     description:'3 litres distributed to a local farming group for compost activation and soil enrichment in their rooftop farm plots.'},
+    {id:'dist4',image:'🪣',date:'2025-05-28',quantity:'6 Litres',
+     bottleId:'Bottle #003',distributedTo:'Kurla School Agriculture Project',
+     location:'Kurla, Mumbai',purpose:'Education &amp; Farming',
+     description:'6 litres given to Kurla school for their student agriculture project. Used for demonstrating organic farming techniques.'},
+  ],
+
+  // ORDERS = users requesting free leachate from us
+  orders: [
+    {id:'o1',userId:'u2',userName:'Arjun Mehta',email:'arjun@demo.com',mobile:'9988776655',
+     address:'12, Shivaji Nagar, Andheri West',city:'Mumbai',state:'Maharashtra',pincode:'400053',
+     quantity:'2 Litres',reason:'For terrace garden plants',status:'Pending',date:'2025-06-14'},
+    {id:'o2',userId:'u3',userName:'Deepa Nair',email:'deepa@demo.com',mobile:'9112233445',
+     address:'45B, Lotus Colony, Dadar',city:'Mumbai',state:'Maharashtra',pincode:'400014',
+     quantity:'5 Litres',reason:'Vegetable farming — kitchen garden',status:'Accepted',date:'2025-06-10'},
+    {id:'o3',userId:'u4',userName:'Rohit Gupta',email:'rohit@demo.com',mobile:'9001122334',
+     address:'88, Govandi East',city:'Mumbai',state:'Maharashtra',pincode:'400043',
+     quantity:'1 Litre',reason:'Testing for plant growth experiment',status:'Rejected',date:'2025-06-08'},
+  ],
+
+  feedbacks: [
+    {id:'f1',name:'Rohit Gupta',email:'rohit@mail.com',
+     message:'Great initiative! The leachate worked wonders on my tomato plants. Yield increased by 30%.',
+     date:'2025-06-12',resolved:false,reply:''},
+    {id:'f2',name:'Sunita Rao',email:'sunita@mail.com',
+     message:'When will the next batch be available? I placed an order 5 days ago.',
+     date:'2025-06-09',resolved:true,reply:'Hi Sunita! Your order has been accepted and will be delivered within 2 days. Thank you for your patience!'},
+  ],
+
+  howTo: [
+    {id:'h1',step:1,icon:'🥦',title:'Collect Organic Waste',
+     desc:'Gather kitchen waste like vegetable peels, fruit scraps, leftover food, tea bags, and coffee grounds. Avoid meat, dairy, and oily waste for best results.',
+     tip:'Use a dedicated kitchen bin with a lid to collect waste daily.'},
+    {id:'h2',step:2,icon:'🪣',title:'Prepare the Compost Bin',
+     desc:'Use a container with a tight-fitting lid and a small tap at the bottom to collect liquid. Add shredded paper or dry leaves at the bottom as a base layer.',
+     tip:'Drill a 1cm hole near the base for liquid drainage.'},
+    {id:'h3',step:3,icon:'📦',title:'Layer Your Waste',
+     desc:"Alternate between 'green' (wet food scraps) and 'brown' (dry leaves, paper) layers. This balances moisture and aeration for proper decomposition.",
+     tip:'Aim for 1:3 ratio of green to brown materials.'},
+    {id:'h4',step:4,icon:'🦠',title:'Add Effective Microorganisms',
+     desc:'Spray EM solution or bokashi bran between layers to accelerate fermentation. This speeds up decomposition and improves leachate quality significantly.',
+     tip:'EM solution is available at garden centres or can be home-made.'},
+    {id:'h5',step:5,icon:'⏳',title:'Seal and Wait',
+     desc:'Seal the bin tightly and store in a cool, shaded place. Allow 2–4 weeks for fermentation. A sour vinegar smell means it is working correctly.',
+     tip:'Sour vinegar smell = good. Foul rotten smell = add more brown materials.'},
+    {id:'h6',step:6,icon:'🫙',title:'Collect the Leachate',
+     desc:'Drain the dark liquid from the tap at the bottom every few days. Store in a sealed bottle away from direct sunlight. Always dilute before use on plants.',
+     tip:'Always dilute 1 part leachate with 100 parts water before applying.'},
+  ],
+
+  uses: [
+    {id:'u1',icon:'🌾',category:'Agricultural Uses',title:'Soil Fertiliser',
+     desc:'Organic leachate is rich in nitrogen, phosphorus, and potassium. Diluted 1:100, it acts as a fast-absorbing liquid fertiliser for all crops.',
+     benefits:['Increases crop yield','Improves soil health','Reduces chemical fertiliser use'],
+     precaution:'Never apply undiluted — it will burn plant roots.'},
+    {id:'u2',icon:'🌿',category:'Gardening',title:'Plant Growth Booster',
+     desc:'Home gardeners can use diluted leachate to boost leaf growth, flowering, and fruiting. Works especially well on leafy vegetables, herbs, and fruit-bearing plants.',
+     benefits:['Promotes lush foliage','Improves flowering','Boosts fruit size and taste'],
+     precaution:'Avoid applying to leaves in direct sunlight to prevent burning.'},
+    {id:'u3',icon:'🏔️',category:'Soil Treatment',title:'Compost Activator',
+     desc:'Leachate contains billions of beneficial microbes that speed up decomposition in new compost bins. Spray it directly into a dry compost pile to activate it.',
+     benefits:['Faster composting time','Reduces compost odour','Produces better quality compost'],
+     precaution:'Use within 1 week of collection for best microbial activity.'},
+    {id:'u4',icon:'🐛',category:'Pest Repellent',title:'Natural Insect Deterrent',
+     desc:'The acidic pH and microbial compounds in leachate naturally deter soft-bodied pests like aphids, mealybugs, and fungus gnats without chemicals.',
+     benefits:['Chemical-free pest control','Safe for beneficial insects','Improves plant immunity'],
+     precaution:'Test on a small plant area first before wider application.'},
+  ],
+
+  bottles: [
+    {id:'b1',name:'Bottle #001',location:'Andheri Community Garden',capacity:20,current:14,status:'OK'},
+    {id:'b2',name:'Bottle #002',location:'Bandra Recycling Hub',    capacity:20,current:18,status:'Warning'},
+    {id:'b3',name:'Bottle #003',location:'Dadar Urban Farm',         capacity:20,current:6, status:'OK'},
+    {id:'b4',name:'Bottle #004',location:'Kurla Municipal Park',     capacity:20,current:20,status:'Critical'},
+  ],
+
+  faq: [
+    {q:'What is organic leachate?',
+     a:'Organic leachate is the dark liquid produced when water percolates through decomposing organic matter. It is rich in nutrients and beneficial microbes that help plants grow.'},
+    {q:'Is leachate safe for my plants?',
+     a:'Yes! Always dilute 1 part leachate with 100 parts water before applying. Undiluted leachate is too concentrated and may burn plant roots.'},
+    {q:'How do I receive my free order?',
+     a:'After placing your request, our team will contact you within 2–3 working days to arrange local pickup or delivery within Mumbai.'},
+    {q:'What is the maximum quantity I can order?',
+     a:'You can request up to 10 Litres per order. This ensures fair distribution across all community members.'},
+    {q:'How long can leachate be stored?',
+     a:'Store in a sealed, airtight bottle away from direct sunlight and heat. It stays effective for up to 4 weeks.'},
+    {q:'Can I check the bottle fill levels?',
+     a:'Yes! Go to "Leachate Bottle Levels" from the home screen to see the current level of all our collection bottles.'},
+  ],
+};
+
+// ════════════════════════════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════════════════════════════
+let CU   = null; // current user
+let hist = [];
+let loginRole = 'user';
+
+function go(id) {
+  const cur = document.querySelector('.sc.on');
+  if (cur) hist.push(cur.id.replace('sc-',''));
+  showSc(id);
+}
+
+function back() {
+  if (hist.length) { const p = hist.pop(); showSc(p); }
+  else showSc(CU?.role === 'admin' ? 'adash' : 'udash');
+}
+
+function showSc(id) {
+  document.querySelectorAll('.sc').forEach(s => s.classList.remove('on'));
+  const el = document.getElementById('sc-' + id);
+  if (el) el.classList.add('on');
+
+  const renders = {
+    'distributions':  renderDistributions,
+    'how-to':         renderHowTo,
+    'uses':           renderUses,
+    'support':        renderFAQ,
+    'my-orders':      renderMyOrders,
+    'bottle-levels':  renderUserBottles,
+    'admin-orders':   renderAdminOrders,
+    'admin-users':    renderUsers,
+    'admin-bottles':  renderAdminBottles,
+    'admin-feedback': renderFeedback,
+    'edit-how-to':    renderEditHowTo,
+    'edit-uses':      renderEditUses,
+    'adash':          updateAdminStats,
+  };
+  if (renders[id]) renders[id]();
+
+  if (id === 'add-distribution') {
+    const editId = document.getElementById('edit-dist-id').value;
+    if (!editId) {
+      // fresh form
+      document.getElementById('add-dist-title').textContent = '➕ Add Distribution';
+      document.getElementById('dist-save-btn').textContent  = '✅ Save Record';
+      ['dist-qty','dist-to','dist-loc','dist-purpose','dist-desc']
+        .forEach(x => document.getElementById(x).value = '');
+      document.getElementById('dist-date').value = new Date().toISOString().split('T')[0];
+    }
+  }
+
+  window.scrollTo(0,0);
+  el?.querySelector('.body')?.scrollTo(0,0);
+}
+
+// ════════════════════════════════════════════════════════════════
+// AUTH
+// ════════════════════════════════════════════════════════════════
+function showLogin(role) {
+  loginRole = role;
+  const isA = role === 'admin';
+  document.getElementById('l-em').textContent    = isA ? '🔑' : '👤';
+  document.getElementById('l-title').textContent = isA ? 'Manager Login' : 'User Login';
+  document.getElementById('l-sub').textContent   = isA ? 'Full management access' : 'View, order & explore';
+  document.getElementById('l-demo').innerHTML    = isA
+    ? '<b>Demo:</b> admin@demo.com &nbsp;/&nbsp; admin123'
+    : '<b>Demo:</b> user@demo.com &nbsp;/&nbsp; user123';
+  document.getElementById('l-err').style.display = 'none';
+  document.getElementById('l-email').value = '';
+  document.getElementById('l-pass').value  = '';
+  document.getElementById('l-signup-link').style.display = isA ? 'none' : 'block';
+  go('login');
+}
+
+function doLogin() {
+  const email = document.getElementById('l-email').value.trim();
+  const pass  = document.getElementById('l-pass').value;
+  const errEl = document.getElementById('l-err');
+  const found = DB.users.find(u => u.email===email && u.pass===pass && u.role===loginRole);
+  if (!found) { errEl.style.display='block'; return; }
+  errEl.style.display = 'none';
+  CU   = found;
+  hist = [];
+  if (found.role === 'admin') {
+    document.getElementById('ad-name').textContent = found.name;
+    updateAdminStats();
+    showSc('adash');
+  } else {
+    const h = new Date().getHours();
+    document.getElementById('ud-gr').textContent =
+      (h<12?'Good morning':h<17?'Good afternoon':'Good evening') + '! 👋';
+    document.getElementById('ud-name').textContent = found.name;
+    updateUserStats();
+    showSc('udash');
+  }
+}
+
+function doLogout() { CU=null; hist=[]; showSc('splash'); }
+
+// ════════════════════════════════════════════════════════════════
+// SIGN UP (Create Account)
+// ════════════════════════════════════════════════════════════════
+function showSignup() {
+  document.getElementById('s-err').style.display = 'none';
+  ['s-name','s-email','s-mobile','s-pass','s-pass2'].forEach(id => document.getElementById(id).value='');
+  go('signup');
+}
+
+function doSignup() {
+  const name   = document.getElementById('s-name').value.trim();
+  const email  = document.getElementById('s-email').value.trim();
+  const mobile = document.getElementById('s-mobile').value.trim();
+  const pass   = document.getElementById('s-pass').value;
+  const pass2  = document.getElementById('s-pass2').value;
+  const errEl  = document.getElementById('s-err');
+
+  const showErr = (msg) => { errEl.textContent = '❌ ' + msg; errEl.style.display = 'block'; };
+
+  if (!name || !email || !mobile || !pass || !pass2) {
+    showErr('Please fill all required fields.'); return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showErr('Enter a valid email address.'); return;
+  }
+  if (mobile.length!==10 || !/^\d+$/.test(mobile)) {
+    showErr('Enter a valid 10-digit mobile number.'); return;
+  }
+  if (pass.length < 6) {
+    showErr('Password must be at least 6 characters.'); return;
+  }
+  if (pass !== pass2) {
+    showErr('Passwords do not match.'); return;
+  }
+  if (DB.users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+    showErr('An account with this email already exists.'); return;
+  }
+
+  errEl.style.display = 'none';
+  const newUser = {
+    id: 'u' + Date.now(),
+    name, email, pass, mobile,
+    role: 'user',
+    reg: new Date().toISOString().split('T')[0]
+  };
+  DB.users.push(newUser);
+
+  // Auto sign in the new user
+  CU = newUser;
+  hist = [];
+  const h = new Date().getHours();
+  document.getElementById('ud-gr').textContent =
+    (h<12?'Good morning':h<17?'Good afternoon':'Good evening') + '! 👋';
+  document.getElementById('ud-name').textContent = newUser.name;
+  updateUserStats();
+  toast('🎉 Account created! Welcome, ' + newUser.name.split(' ')[0] + '.');
+  showSc('udash');
+}
+
+// ════════════════════════════════════════════════════════════════
+// STATS
+// ════════════════════════════════════════════════════════════════
+function updateAdminStats() {
+  const usersCount = DB.users.filter(u=>u.role==='user').length;
+  document.getElementById('a-users').textContent = usersCount;
+  document.getElementById('a-dists').textContent = DB.distributions.length;
+  document.getElementById('a-ords').textContent  = DB.orders.length;
+  document.getElementById('a-bots').textContent  = DB.bottles.length;
+
+  const crits = DB.bottles.filter(b=>b.status==='Critical');
+  const warns = DB.bottles.filter(b=>b.status==='Warning');
+  let html = '';
+  if (crits.length)
+    html += `<div class="info-b ib-r">🚨 <b>CRITICAL:</b> ${crits.map(b=>b.name).join(', ')} at maximum capacity! Collect immediately.</div>`;
+  if (warns.length)
+    html += `<div class="info-b ib-y">⚠️ <b>WARNING:</b> ${warns.map(b=>b.name).join(', ')} approaching capacity. Attend soon.</div>`;
+  const al = document.getElementById('admin-alerts');
+  if (al) al.innerHTML = html;
+}
+
+function updateUserStats() {
+  const myOrders = DB.orders.filter(o => o.userId===CU?.id);
+  document.getElementById('ud-sd').textContent = DB.distributions.length;
+  document.getElementById('ud-so').textContent = myOrders.length;
+  let totalL = 0;
+  DB.distributions.forEach(d => { const m=d.quantity.match(/(\d+)/); if(m) totalL+=parseInt(m[1]); });
+  document.getElementById('ud-sv').textContent = totalL + 'L';
+}
+
+// ════════════════════════════════════════════════════════════════
+// DISTRIBUTIONS (WE give leachate to community)
+// ════════════════════════════════════════════════════════════════
+function renderDistributions() {
+  const isAdmin = CU?.role === 'admin';
+  document.getElementById('dist-add-btn').style.display = isAdmin ? 'block' : 'none';
+
+  ['001','002','003'].forEach((n,i) => {
+    const c = DB.distributions.filter(d=>d.bottleId===`Bottle #${n}`).length;
+    document.getElementById(`dist-b${i+1}`).textContent = c;
+  });
+  document.getElementById('dist-tot').textContent = DB.distributions.length;
+
+  const list = document.getElementById('dist-list');
+  if (!DB.distributions.length) {
+    list.innerHTML = '<div class="empty"><span class="ee">🫙</span><p>No distribution records yet</p></div>';
+    return;
+  }
+  list.innerHTML = DB.distributions.map(d => `
+    <div class="li" onclick="viewDistribution('${d.id}')">
+      <div class="li-top">
+        <div class="li-em">${d.image}</div>
+        <div class="li-body">
+          <h3>${d.bottleId} → ${d.distributedTo}</h3>
+          <p>${d.description.substring(0,75)}...</p>
+          <div class="chips">
+            <span class="chip">📅 ${d.date}</span>
+            <span class="chip">📦 ${d.quantity}</span>
+            <span class="chip">📍 ${d.location}</span>
+            ${d.purpose ? `<span class="chip">🌿 ${d.purpose}</span>` : ''}
+          </div>
+        </div>
+      </div>
+      ${isAdmin ? `<div class="li-actions">
+        <button class="btn-sm b-edit-btn" onclick="event.stopPropagation();editDistribution('${d.id}')">✏️ Edit</button>
+        <button class="btn-sm b-rej-btn"  onclick="event.stopPropagation();deleteDistribution('${d.id}')">🗑️ Delete</button>
+      </div>` : ''}
+    </div>`).join('');
+}
+
+function viewDistribution(id) {
+  const d = DB.distributions.find(x=>x.id===id);
+  if (!d) return;
+  document.getElementById('dist-detail-body').innerHTML = `
+    <div class="detail-img">${d.image}</div>
+    <div class="pad">
+      <h2 style="font-size:18px;font-weight:800;color:var(--g800);margin-bottom:4px">${d.distributedTo}</h2>
+      <div class="chips" style="margin-bottom:13px">
+        <span class="chip">📅 ${d.date}</span>
+        <span class="chip">📦 ${d.quantity}</span>
+        <span class="chip">🧪 ${d.bottleId}</span>
+        <span class="chip">📍 ${d.location}</span>
+        ${d.purpose?`<span class="chip">🌿 ${d.purpose}</span>`:''}
+      </div>
+      <div class="card">
+        <div style="font-size:10px;font-weight:700;color:var(--muted);margin-bottom:7px">DESCRIPTION</div>
+        <p style="font-size:13px;line-height:1.65;color:var(--ink)">${d.description}</p>
+      </div>
+      <div class="info-b ib-g">💚 This leachate was distributed free of charge as part of our organic waste management initiative.</div>
+    </div>`;
+  go('dist-detail');
+}
+
+function editDistribution(id) {
+  const d = DB.distributions.find(x=>x.id===id);
+  if (!d) return;
+  document.getElementById('edit-dist-id').value    = id;
+  document.getElementById('add-dist-title').textContent = '✏️ Edit Distribution';
+  document.getElementById('dist-save-btn').textContent  = '✅ Update Record';
+  document.getElementById('dist-img').value     = d.image;
+  document.getElementById('dist-date').value    = d.date;
+  document.getElementById('dist-qty').value     = d.quantity;
+  document.getElementById('dist-bottle').value  = d.bottleId;
+  document.getElementById('dist-to').value      = d.distributedTo;
+  document.getElementById('dist-loc').value     = d.location;
+  document.getElementById('dist-purpose').value = d.purpose;
+  document.getElementById('dist-desc').value    = d.description;
+  go('add-distribution');
+}
+
+function saveDistribution() {
+  const editId  = document.getElementById('edit-dist-id').value;
+  const image   = document.getElementById('dist-img').value;
+  const date    = document.getElementById('dist-date').value;
+  const qty     = document.getElementById('dist-qty').value.trim();
+  const bottle  = document.getElementById('dist-bottle').value;
+  const to      = document.getElementById('dist-to').value.trim() || 'Community';
+  const loc     = document.getElementById('dist-loc').value.trim();
+  const purpose = document.getElementById('dist-purpose').value.trim();
+  const desc    = document.getElementById('dist-desc').value.trim();
+
+  if (!date || !qty || !loc || !desc) { toast('⚠️ Please fill all required fields'); return; }
+
+  if (editId) {
+    DB.distributions = DB.distributions.map(d =>
+      d.id===editId ? {...d,image,date,quantity:qty,bottleId:bottle,
+        distributedTo:to,location:loc,purpose,description:desc} : d);
+    toast('✅ Distribution record updated!');
+  } else {
+    DB.distributions.unshift({
+      id:'dist'+Date.now(), image, date, quantity:qty, bottleId:bottle,
+      distributedTo:to, location:loc, purpose, description:desc
+    });
+    toast('✅ Distribution record added!');
+  }
+  document.getElementById('edit-dist-id').value = '';
+  updateAdminStats();
+  updateUserStats();
+  back();
+}
+
+function deleteDistribution(id) {
+  if (!confirm('Delete this distribution record?')) return;
+  DB.distributions = DB.distributions.filter(d=>d.id!==id);
+  toast('🗑️ Record deleted');
+  renderDistributions();
+  updateAdminStats();
+}
+
+// ════════════════════════════════════════════════════════════════
+// HOW TO
+// ════════════════════════════════════════════════════════════════
+function renderHowTo() {
+  document.getElementById('how-to-list').innerHTML = DB.howTo.map(s => `
+    <div class="step">
+      <div class="step-top">
+        <div class="step-n">${s.step}</div>
+        <div class="step-ic">${s.icon}</div>
+        <div class="step-ti">${s.title}</div>
+      </div>
+      <p style="font-size:11px;color:var(--muted);line-height:1.55">${s.desc}</p>
+      <div class="tip">💡 <b>Tip:</b> ${s.tip}</div>
+    </div>`).join('');
+}
+
+// ════════════════════════════════════════════════════════════════
+// USES
+// ════════════════════════════════════════════════════════════════
+function renderUses() {
+  document.getElementById('uses-list').innerHTML = DB.uses.map(u => `
+    <div class="uc">
+      <div style="font-size:32px;margin-bottom:5px">${u.icon}</div>
+      <div class="uc-cat">${u.category}</div>
+      <h3>${u.title}</h3>
+      <p style="font-size:11px;color:var(--muted);line-height:1.55">${u.desc}</p>
+      <ul class="blist">${u.benefits.map(b=>`<li>${b}</li>`).join('')}</ul>
+      <div class="prec">⚠️ <b>Precaution:</b> ${u.precaution}</div>
+    </div>`).join('');
+}
+
+// ════════════════════════════════════════════════════════════════
+// FAQ + FEEDBACK (Support screen)
+// ════════════════════════════════════════════════════════════════
+function renderFAQ() {
+  document.getElementById('faq-list').innerHTML = DB.faq.map((f,i) => `
+    <div class="faq">
+      <div class="faq-q" onclick="toggleFAQ(${i})">
+        ${f.q} <span class="faq-arr" id="fa${i}">▾</span>
+      </div>
+      <div class="faq-a" id="faa${i}">${f.a}</div>
+    </div>`).join('');
+}
+
+function toggleFAQ(i) {
+  document.getElementById('faa'+i).classList.toggle('open');
+  document.getElementById('fa'+i).classList.toggle('open');
+}
+
+function submitFeedback() {
+  const name  = document.getElementById('fb-name').value.trim();
+  const email = document.getElementById('fb-email').value.trim();
+  const msg   = document.getElementById('fb-msg').value.trim();
+  if (!name || !email || !msg) { toast('⚠️ Please fill all fields'); return; }
+  DB.feedbacks.unshift({
+    id:'f'+Date.now(), name, email, message:msg,
+    date:new Date().toISOString().split('T')[0], resolved:false, reply:''
+  });
+  document.getElementById('fb-name').value  = '';
+  document.getElementById('fb-email').value = '';
+  document.getElementById('fb-msg').value   = '';
+  toast('✅ Feedback sent! We will reply soon.');
+}
+
+// ════════════════════════════════════════════════════════════════
+// ORDER MODAL
+// ════════════════════════════════════════════════════════════════
+function openOrderModal() {
+  if (CU) {
+    document.getElementById('o-name').value  = CU.name   || '';
+    document.getElementById('o-email').value = CU.email  || '';
+    document.getElementById('o-mob').value   = CU.mobile || '';
+  }
+  ['o-addr','o-city','o-state','o-pin','o-reason'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('o-err').style.display = 'none';
+  document.getElementById('mo-order').classList.add('open');
+}
+
+function submitOrder() {
+  const name  = document.getElementById('o-name').value.trim();
+  const mob   = document.getElementById('o-mob').value.trim();
+  const email = document.getElementById('o-email').value.trim();
+  const addr  = document.getElementById('o-addr').value.trim();
+  const city  = document.getElementById('o-city').value.trim();
+  const state = document.getElementById('o-state').value.trim();
+  const pin   = document.getElementById('o-pin').value.trim();
+  const qty   = document.getElementById('o-qty').value;
+  const reason= document.getElementById('o-reason').value.trim();
+  const errEl = document.getElementById('o-err');
+
+  if (!name||!mob||!email||!addr||!city||!state||!pin) {
+    errEl.style.display='block'; errEl.textContent='⚠️ Please fill all required fields.'; return;
+  }
+  if (mob.length!==10 || !/^\d+$/.test(mob)) {
+    errEl.style.display='block'; errEl.textContent='⚠️ Enter a valid 10-digit mobile number.'; return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errEl.style.display='block'; errEl.textContent='⚠️ Enter a valid email address.'; return;
+  }
+  if (pin.length!==6 || !/^\d+$/.test(pin)) {
+    errEl.style.display='block'; errEl.textContent='⚠️ Enter a valid 6-digit pincode.'; return;
+  }
+
+  errEl.style.display = 'none';
+  DB.orders.unshift({
+    id:'o'+Date.now(), userId:CU?.id||'guest', userName:name,
+    email, mobile:mob, address:addr, city, state, pincode:pin,
+    quantity:qty, reason, status:'Pending',
+    date:new Date().toISOString().split('T')[0]
+  });
+  closeModal('mo-order');
+  updateUserStats();
+  updateAdminStats();
+  toast('🎉 Order placed! We will contact you in 2–3 days.');
+}
+
+// ════════════════════════════════════════════════════════════════
+// MY ORDERS — User's own orders with status
+// ════════════════════════════════════════════════════════════════
+function renderMyOrders() {
+  const myOrders = DB.orders.filter(o => o.userId===CU?.id);
+  const list = document.getElementById('my-orders-list');
+
+  if (!myOrders.length) {
+    list.innerHTML = `
+      <div class="empty">
+        <span class="ee">🧾</span>
+        <p>You have no orders yet</p>
+        <br>
+        <button class="btn btn-p" onclick="go('order')"
+          style="width:auto;padding:10px 20px;margin:0 auto">📦 Order Free Leachate</button>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = myOrders.map(o => {
+    const bc = o.status==='Pending'?'b-pend':o.status==='Accepted'?'b-acc':'b-rej';
+    const ic = o.status==='Pending'?'⏳':o.status==='Accepted'?'✅':'❌';
+    const msg = o.status==='Pending'
+      ? '<div style="font-size:10px;color:var(--muted);margin-top:5px">⏰ Our team will contact you within 2–3 working days.</div>'
+      : o.status==='Accepted'
+      ? '<div style="font-size:10px;color:#15803d;margin-top:5px">✅ Order accepted! Delivery will be arranged soon.</div>'
+      : '<div style="font-size:10px;color:var(--red);margin-top:5px">❌ Order rejected. Please contact support for more info.</div>';
+    return `
+      <div class="oc">
+        <div class="oc-top">
+          <div>
+            <div style="font-weight:700;font-size:14px">📦 ${o.quantity}</div>
+            <div style="font-size:10px;color:var(--muted)">Placed on ${o.date}</div>
+          </div>
+          <span class="badge ${bc}">${ic} ${o.status}</span>
+        </div>
+        <div style="font-size:11px;line-height:1.75;background:var(--g50);
+          border-radius:8px;padding:9px;margin-bottom:6px;color:var(--ink)">
+          📍 ${o.address}, ${o.city}, ${o.state} – ${o.pincode}<br>
+          📞 ${o.mobile} &nbsp;·&nbsp; 📧 ${o.email}
+          ${o.reason ? `<br>💬 Reason: ${o.reason}` : ''}
+        </div>
+        ${msg}
+      </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════════════════════════
+// BOTTLE LEVELS — User View (read-only, visual gauges)
+// ════════════════════════════════════════════════════════════════
+function renderUserBottles() {
+  const list = document.getElementById('user-bottles-list');
+  list.innerHTML = DB.bottles.map(b => {
+    const pct = Math.min(100, Math.round((b.current/b.capacity)*100));
+    const fc  = b.status==='OK'?'p-ok':b.status==='Warning'?'p-warn':'p-crit';
+    const bc  = b.status==='OK'?'b-ok':b.status==='Warning'?'b-warn':'b-crit';
+    const gcBg = b.status==='OK'
+      ? 'linear-gradient(135deg,var(--g700),var(--g500))'
+      : b.status==='Warning'
+      ? 'linear-gradient(135deg,#d97706,#f59e0b)'
+      : 'linear-gradient(135deg,#dc2626,#ef4444)';
+    const freeL = b.capacity - b.current;
+    return `
+      <div class="blc">
+        <div class="blc-top">
+          <div>
+            <div class="blc-name">🧪 ${b.name}</div>
+            <div class="blc-loc">📍 ${b.location}</div>
+          </div>
+          <span class="badge ${bc}">${b.status}</span>
+        </div>
+        <div class="gauge-wrap">
+          <div class="gauge-circle" style="background:${gcBg};color:#fff">
+            <div class="gauge-pct">${pct}%</div>
+            <div class="gauge-lbl">Full</div>
+          </div>
+        </div>
+        <div class="prog-wrap" style="margin-top:10px">
+          <div class="prog-fill ${fc}" style="width:${pct}%" data-pct="${pct}%"></div>
+        </div>
+        <div class="prog-info">
+          <span>🟢 ${b.current}L collected</span>
+          <span>📦 ${freeL}L space left</span>
+          <span>Total: ${b.capacity}L</span>
+        </div>
+        ${b.status==='Critical'
+          ? '<div class="info-b ib-r" style="margin-top:8px;font-size:10px">🚨 This bottle is FULL. Limited leachate may be available from this bottle.</div>'
+          : b.status==='Warning'
+          ? '<div class="info-b ib-y" style="margin-top:8px;font-size:10px">⚠️ This bottle is nearly full. Stock from this bottle may run low soon.</div>'
+          : ''}
+      </div>`;
+  }).join('');
+
+  if (!DB.bottles.length)
+    document.getElementById('user-bottles-list').innerHTML =
+      '<div class="empty"><span class="ee">🧪</span><p>No bottles registered yet</p></div>';
+}
+
+// ════════════════════════════════════════════════════════════════
+// ADMIN — ORDERS (all user orders visible to manager)
+// ════════════════════════════════════════════════════════════════
+function renderAdminOrders() {
+  const q = (document.getElementById('ord-search')?.value || '').toLowerCase();
+  const filtered = DB.orders.filter(o =>
+    !q || o.userName.toLowerCase().includes(q) ||
+    o.status.toLowerCase().includes(q) ||
+    o.city.toLowerCase().includes(q) ||
+    o.mobile.includes(q)
+  );
+
+  // Stats
+  document.getElementById('ao-pend').textContent = DB.orders.filter(o=>o.status==='Pending').length;
+  document.getElementById('ao-acc').textContent  = DB.orders.filter(o=>o.status==='Accepted').length;
+  document.getElementById('ao-rej').textContent  = DB.orders.filter(o=>o.status==='Rejected').length;
+  document.getElementById('ao-tot').textContent  = DB.orders.length;
+
+  const list = document.getElementById('admin-orders-list');
+  if (!filtered.length) {
+    list.innerHTML = '<div class="empty"><span class="ee">📦</span><p>No orders found</p></div>';
+    return;
+  }
+  list.innerHTML = filtered.map(o => {
+    const bc = o.status==='Pending'?'b-pend':o.status==='Accepted'?'b-acc':'b-rej';
+    const user = DB.users.find(u=>u.id===o.userId);
+    return `
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+          <div>
+            <div style="font-weight:800;font-size:14px">👤 ${o.userName}</div>
+            <div style="font-size:10px;color:var(--muted)">📅 ${o.date} &nbsp;·&nbsp; 📦 ${o.quantity}</div>
+          </div>
+          <span class="badge ${bc}">${o.status}</span>
+        </div>
+        <div style="font-size:11px;line-height:1.8;background:var(--g50);
+          border-radius:8px;padding:9px;margin-bottom:9px">
+          📞 ${o.mobile} &nbsp;·&nbsp; 📧 ${o.email}<br>
+          📍 ${o.address}, ${o.city}, ${o.state} – ${o.pincode}
+          ${o.reason ? `<br>💬 Reason: ${o.reason}` : ''}
+        </div>
+        ${o.status==='Pending' ? `
+        <div style="display:flex;gap:7px">
+          <button class="btn-sm b-acc-btn" onclick="setOrderStatus('${o.id}','Accepted')">✅ Accept</button>
+          <button class="btn-sm b-rej-btn" onclick="setOrderStatus('${o.id}','Rejected')">❌ Reject</button>
+        </div>` : `
+        <div style="font-size:10px;color:var(--muted)">
+          ${o.status==='Accepted'?'✅ Accepted — arrange delivery':'❌ Rejected'}
+        </div>`}
+      </div>`;
+  }).join('');
+}
+
+function setOrderStatus(id, status) {
+  DB.orders = DB.orders.map(o => o.id===id ? {...o,status} : o);
+  toast(status==='Accepted' ? '✅ Order accepted' : '❌ Order rejected');
+  renderAdminOrders();
+  updateAdminStats();
+}
+
+// ════════════════════════════════════════════════════════════════
+// ADMIN — CONTENT EDIT: HOW TO
+// ════════════════════════════════════════════════════════════════
+function renderEditHowTo() {
+  document.getElementById('edit-howto-list').innerHTML = DB.howTo.map((s,i) => `
+    <div class="edit-step">
+      <div class="edit-lbl">Step ${s.step}</div>
+      <div class="f-row">
+        <div class="f" style="flex:0 0 65px"><label>Icon</label>
+          <input type="text" id="hs-ic-${i}" value="${s.icon}" style="text-align:center;font-size:18px"/></div>
+        <div class="f"><label>Title *</label>
+          <input type="text" id="hs-ti-${i}" value="${s.title}"/></div>
+      </div>
+      <div class="f"><label>Description *</label>
+        <textarea id="hs-de-${i}" rows="3">${s.desc}</textarea></div>
+      <div class="f"><label>💡 Tip</label>
+        <input type="text" id="hs-tp-${i}" value="${s.tip}"/></div>
+    </div>`).join('');
+}
+
+function saveHowTo() {
+  const updated = DB.howTo.map((s,i) => ({
+    ...s,
+    icon:  document.getElementById(`hs-ic-${i}`).value.trim()||s.icon,
+    title: document.getElementById(`hs-ti-${i}`).value.trim()||s.title,
+    desc:  document.getElementById(`hs-de-${i}`).value.trim()||s.desc,
+    tip:   document.getElementById(`hs-tp-${i}`).value.trim()||s.tip,
+  }));
+  if (updated.some(s=>!s.title||!s.desc)) { toast('⚠️ Title and description required for all steps'); return; }
+  DB.howTo = updated;
+  toast('✅ How-To content saved!');
+  back();
+}
+
+// ════════════════════════════════════════════════════════════════
+// ADMIN — CONTENT EDIT: USES
+// ════════════════════════════════════════════════════════════════
+function renderEditUses() {
+  document.getElementById('edit-uses-list').innerHTML = DB.uses.map((u,i) => `
+    <div class="edit-step">
+      <div class="edit-lbl">Use ${i+1}</div>
+      <div class="f-row">
+        <div class="f" style="flex:0 0 65px"><label>Icon</label>
+          <input type="text" id="us-ic-${i}" value="${u.icon}" style="text-align:center;font-size:18px"/></div>
+        <div class="f"><label>Category</label>
+          <input type="text" id="us-ca-${i}" value="${u.category}"/></div>
+      </div>
+      <div class="f"><label>Title *</label><input type="text" id="us-ti-${i}" value="${u.title}"/></div>
+      <div class="f"><label>Description *</label><textarea id="us-de-${i}" rows="3">${u.desc}</textarea></div>
+      <div class="f"><label>Benefits (one per line)</label>
+        <textarea id="us-be-${i}" rows="3">${u.benefits.join('\n')}</textarea></div>
+      <div class="f"><label>⚠️ Precaution</label>
+        <input type="text" id="us-pr-${i}" value="${u.precaution}"/></div>
+    </div>`).join('');
+}
+
+function saveUses() {
+  const updated = DB.uses.map((u,i) => {
+    const b = document.getElementById(`us-be-${i}`).value.split('\n').map(s=>s.trim()).filter(Boolean);
+    return {
+      ...u,
+      icon:       document.getElementById(`us-ic-${i}`).value.trim()||u.icon,
+      category:   document.getElementById(`us-ca-${i}`).value.trim()||u.category,
+      title:      document.getElementById(`us-ti-${i}`).value.trim()||u.title,
+      desc:       document.getElementById(`us-de-${i}`).value.trim()||u.desc,
+      benefits:   b.length?b:u.benefits,
+      precaution: document.getElementById(`us-pr-${i}`).value.trim()||u.precaution,
+    };
+  });
+  DB.uses = updated;
+  toast('✅ Uses content saved!');
+  back();
+}
+
+// ════════════════════════════════════════════════════════════════
+// ADMIN — USERS
+// ════════════════════════════════════════════════════════════════
+function renderUsers() {
+  const q = (document.getElementById('usr-search')?.value||'').toLowerCase();
+  const filtered = DB.users.filter(u =>
+    !q||u.name.toLowerCase().includes(q)||u.email.toLowerCase().includes(q)
+  );
+  const list = document.getElementById('admin-users-list');
+  if (!filtered.length) {
+    list.innerHTML = '<div class="empty"><span class="ee">👥</span><p>No users found</p></div>'; return;
+  }
+  list.innerHTML = filtered.map(u => `
+    <div class="ur">
+      <div class="av">${u.name[0].toUpperCase()}</div>
+      <div class="ui">
+        <div class="un">${u.name} <span class="badge ${u.role==='admin'?'b-admin':'b-user'}">${u.role}</span></div>
+        <div class="ue">📧 ${u.email}</div>
+        <div class="ue">📞 ${u.mobile} &nbsp;·&nbsp; 🗓️ ${u.reg}</div>
+        <div class="ue" style="color:#aaa;font-size:9px;margin-top:1px">🔒 Password hidden — encrypted</div>
+      </div>
+      ${u.role!=='admin'?`<button style="background:#fee2e2;border:1px solid #fca5a5;color:var(--red);
+        border-radius:7px;padding:6px 10px;font-size:10px;font-weight:700;cursor:pointer;flex-shrink:0"
+        onclick="deleteUser('${u.id}')">🗑️</button>`:''}
+    </div>`).join('');
+}
+
+function deleteUser(id) {
+  const u = DB.users.find(x=>x.id===id);
+  if (!confirm(`Delete user "${u?.name}"? This cannot be undone.`)) return;
+  DB.users  = DB.users.filter(x=>x.id!==id);
+  DB.orders = DB.orders.filter(o=>o.userId!==id);
+  toast('🗑️ User deleted');
+  renderUsers();
+  updateAdminStats();
+}
+
+// ════════════════════════════════════════════════════════════════
+// ADMIN — BOTTLES (edit levels)
+// ════════════════════════════════════════════════════════════════
+function renderAdminBottles() {
+  const list = document.getElementById('bottles-list');
+  list.innerHTML = DB.bottles.map(b => {
+    const pct = Math.min(100, Math.round((b.current/b.capacity)*100));
+    const fc  = b.status==='OK'?'p-ok':b.status==='Warning'?'p-warn':'p-crit';
+    const bc  = b.status==='OK'?'b-ok':b.status==='Warning'?'b-warn':'b-crit';
+    return `
+      <div class="blc">
+        <div class="blc-top">
+          <div>
+            <div class="blc-name">${b.name}</div>
+            <div class="blc-loc">📍 ${b.location}</div>
+          </div>
+          <span class="badge ${bc}">${b.status}</span>
+        </div>
+        <div class="prog-wrap">
+          <div class="prog-fill ${fc}" style="width:${pct}%" data-pct="${pct}%"></div>
+        </div>
+        <div class="prog-info">
+          <span>${b.current}L / ${b.capacity}L</span>
+          <span>${pct}% full</span>
+        </div>
+        <div style="display:flex;gap:7px;margin-top:9px">
+          <button class="btn-sm b-edit-btn" onclick="openEditBottleModal('${b.id}')">✏️ Update Level</button>
+          <button class="btn-sm b-rej-btn"  onclick="deleteBottle('${b.id}')">🗑️ Remove</button>
+        </div>
+      </div>`;
+  }).join('');
+  if (!DB.bottles.length)
+    list.innerHTML = '<div class="empty"><span class="ee">🧪</span><p>No bottles added yet</p></div>';
+}
+
+function openAddBottleModal() {
+  document.getElementById('b-edit-id').value = '';
+  document.getElementById('bottle-modal-title').textContent = '🧪 Add New Bottle';
+  ['b-name','b-loc'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('b-cap').value = '20';
+  document.getElementById('b-cur').value = '0';
+  document.getElementById('mo-bottle').classList.add('open');
+}
+
+function openEditBottleModal(id) {
+  const b = DB.bottles.find(x=>x.id===id);
+  if (!b) return;
+  document.getElementById('b-edit-id').value  = id;
+  document.getElementById('bottle-modal-title').textContent = '✏️ Update Bottle Level';
+  document.getElementById('b-name').value = b.name;
+  document.getElementById('b-loc').value  = b.location;
+  document.getElementById('b-cap').value  = b.capacity;
+  document.getElementById('b-cur').value  = b.current;
+  document.getElementById('mo-bottle').classList.add('open');
+}
+
+function saveBottle() {
+  const name   = document.getElementById('b-name').value.trim();
+  const loc    = document.getElementById('b-loc').value.trim();
+  const cap    = parseInt(document.getElementById('b-cap').value);
+  const cur    = parseInt(document.getElementById('b-cur').value);
+  const editId = document.getElementById('b-edit-id').value;
+
+  if (!name||!loc||isNaN(cap)||isNaN(cur)) { toast('⚠️ Fill all fields with valid values'); return; }
+  if (cur > cap) { toast('⚠️ Current level cannot exceed total capacity'); return; }
+  if (cap < 1)   { toast('⚠️ Capacity must be at least 1 litre'); return; }
+
+  const pct    = cur/cap;
+  const status = pct>=1?'Critical':pct>=0.85?'Warning':'OK';
+
+  if (editId) {
+    DB.bottles = DB.bottles.map(b =>
+      b.id===editId ? {...b,name,location:loc,capacity:cap,current:cur,status} : b);
+    toast('✅ Bottle level updated!');
+  } else {
+    DB.bottles.push({id:'b'+Date.now(),name,location:loc,capacity:cap,current:cur,status});
+    toast('✅ Bottle added!');
+  }
+  closeModal('mo-bottle');
+  renderAdminBottles();
+  updateAdminStats();
+}
+
+function deleteBottle(id) {
+  const b = DB.bottles.find(x=>x.id===id);
+  if (!confirm(`Remove "${b?.name}" from monitoring?`)) return;
+  DB.bottles = DB.bottles.filter(x=>x.id!==id);
+  toast('🗑️ Bottle removed');
+  renderAdminBottles();
+  updateAdminStats();
+}
+
+// ════════════════════════════════════════════════════════════════
+// ADMIN — FEEDBACK
+// ════════════════════════════════════════════════════════════════
+function renderFeedback() {
+  const open = DB.feedbacks.filter(f=>!f.resolved).length;
+  const res  = DB.feedbacks.filter(f=>f.resolved).length;
+  document.getElementById('fb-open-n').textContent = open;
+  document.getElementById('fb-res-n').textContent  = res;
+  document.getElementById('fb-tot-n').textContent  = DB.feedbacks.length;
+
+  const list = document.getElementById('admin-feedback-list');
+  if (!DB.feedbacks.length) {
+    list.innerHTML = '<div class="empty"><span class="ee">💬</span><p>No feedback yet</p></div>'; return;
+  }
+  list.innerHTML = DB.feedbacks.map(f => `
+    <div class="fbc">
+      <div class="fbc-top">
+        <span style="font-weight:700;font-size:12px">👤 ${f.name}</span>
+        <span class="badge ${f.resolved?'b-acc':'b-pend'}">${f.resolved?'Resolved':'Open'}</span>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:5px">📧 ${f.email} &nbsp;·&nbsp; 🗓️ ${f.date}</div>
+      <div style="font-size:12px;color:var(--ink);line-height:1.5">💬 ${f.message}</div>
+      ${f.reply ? `<div style="background:var(--g50);border-left:3px solid var(--g500);
+        border-radius:0 7px 7px 0;padding:7px 10px;margin-top:8px;font-size:11px;color:var(--g700)">
+        <b>Reply:</b> ${f.reply}</div>` : ''}
+      <div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap">
+        <button class="btn-sm b-edit-btn" onclick="openReplyModal('${f.id}')">💬 Reply</button>
+        ${!f.resolved?`<button class="btn-sm b-acc-btn" onclick="resolveFeedback('${f.id}')">✅ Resolve</button>`:''}
+        <button class="btn-sm b-rej-btn" onclick="deleteFeedback('${f.id}')">🗑️ Delete</button>
+      </div>
+    </div>`).join('');
+}
+
+function openReplyModal(id) {
+  const f = DB.feedbacks.find(x=>x.id===id);
+  if (!f) return;
+  document.getElementById('reply-id').value = id;
+  document.getElementById('reply-preview').textContent = `"${f.message}"`;
+  document.getElementById('reply-text').value = f.reply || '';
+  document.getElementById('mo-reply').classList.add('open');
+}
+
+function saveReply() {
+  const id    = document.getElementById('reply-id').value;
+  const reply = document.getElementById('reply-text').value.trim();
+  if (!reply) { toast('⚠️ Please type a reply'); return; }
+  DB.feedbacks = DB.feedbacks.map(f => f.id===id ? {...f,reply,resolved:true} : f);
+  closeModal('mo-reply');
+  toast('✅ Reply sent & marked resolved');
+  renderFeedback();
+}
+
+function resolveFeedback(id) {
+  DB.feedbacks = DB.feedbacks.map(f => f.id===id ? {...f,resolved:true} : f);
+  toast('✅ Marked as resolved');
+  renderFeedback();
+}
+
+function deleteFeedback(id) {
+  if (!confirm('Delete this feedback permanently?')) return;
+  DB.feedbacks = DB.feedbacks.filter(f=>f.id!==id);
+  toast('🗑️ Feedback deleted');
+  renderFeedback();
+}
+
+// ════════════════════════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════════════════════════
+function closeModal(id, e) {
+  if (e && e.target !== document.getElementById(id)) return;
+  document.getElementById(id).classList.remove('open');
+}
+
+let _tt;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(_tt);
+  _tt = setTimeout(()=>t.classList.remove('show'), 3000);
+}
+
+// ════════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  const h  = new Date().getHours();
+  const gr = h<12?'Good morning':h<17?'Good afternoon':'Good evening';
+  const el = document.getElementById('ud-gr');
+  if (el) el.textContent = gr + '! 👋';
+});
+</script>
+</body>
+</html>
